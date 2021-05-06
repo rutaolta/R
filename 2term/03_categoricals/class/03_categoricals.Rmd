@@ -1,0 +1,155 @@
+---
+title: "Categoricals"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mlbench)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+data(PimaIndiansDiabetes2)
+df <- PimaIndiansDiabetes2
+```
+
+## Categoricals
+
+### Binomial
+```{r}
+summary(df$mass)
+# BMI: let's assume normal as <25
+# cut()
+df$bmi <- as.factor(ifelse(df$mass < 25, "Normal", "Abnormal"))
+summary(df$bmi)
+```
+
+```{r}
+vec_cat <- df$bmi
+summary(vec_cat)
+table(vec_cat)
+```
+
+```{r}
+length(vec_cat) # aware of NA!
+sum(table(vec_cat))
+```
+
+
+
+```{r}
+x <- 106
+n <- 757
+x / n * 100
+```
+
+```{r}
+# Exact Binomial Test
+binom.test(x, n, conf.level = 0.9)
+binom.test(x, n)
+```
+
+#### TASK #3.1 Categorical Output 1
+- Create functions for categorical output for binomial factor
+```{r}
+source('/Users/valeria.bogdanova/Documents/private/itmo/utils.R')
+freq_output(x, n)
+ci_cat_output(x, n)
+
+freq_output(n-x, n)
+ci_cat_output(n-x, n)
+```
+
+### Multinomial
+```{r}
+# BMI: let's assume normal as <25, non-critical abnormal < 35, else - critical
+df$bmi_multi <- as.factor(ifelse(df$mass < 25, "Normal",
+                          ifelse(df$mass < 35, "NoSig Abnorm", "Sig Abnorm")))
+summary(df$bmi_multi)
+```
+
+```{r}
+vec_cat_m <- df$bmi_multi
+
+tt <- table(vec_cat_m)
+tt_p <- tt / sum(tt)
+round(tt_p * 100, 2)
+```
+```{r}
+library(MultinomialCI)
+
+# Sison-Graz Method
+tt_p
+multinomialCI(tt, alpha = 0.05)
+
+```
+
+
+#### TASK #3.2 Categorical Output 2
+- Create function for categorical output for multinomial factor
+```{r}
+ci_multicat_output(ft = tt, k = 1)
+ci_multicat_output(ft = tt, k = 2)
+ci_multicat_output(ft = tt, k = 3)
+```
+
+### Contingency Table = Cross table
+
+```{r}
+table(df$bmi, df$diabetes)
+table(df$bmi_multi, df$diabetes)
+```
+
+```{r}
+# Pearson's Chi-squared Test 
+chisq.test(df$bmi, df$diabete)
+chisq.test(table(df$bmi, df$diabetes))
+
+chisq.test(df$bmi_multi, df$diabetes)
+```
+```{r}
+# Fisher's Exact Test
+# - for 2x2 cross tabs (but not only)
+# - when for some cell count < 10 or <5 (you can meet different in literature)
+
+fisher.test(df$bmi, df$diabete)
+
+fisher.test(df$bmi_multi, df$diabete)
+fisher.test(table(df$bmi_multi, df$diabetes))
+```
+
+#### TASK #3.3 Categorical Output Fully
+- Study the example
+- Perform categorical stats output both(!) for bmi and bmi_multi within the same report
+```{r}
+measure_order_cat <- c("N", "Missing",
+                       "NormN", "NormF", "NormCi",
+                       "AbnormN", "AbnormF", "AbnormCi")
+df %>% select(bmi, diabetes) %>% 
+    gather(key = 'Parameter', value = 'Value', -diabetes) %>% 
+    group_by(diabetes, Parameter) %>% 
+    summarise(N = n() - sum(is.na(Value)),
+              Missing = sum(is.na(Value)),
+              
+              NormN = sum(Value == 'Normal', na.rm = T),
+              NormF = freq_output(NormN, N),
+              NormCi = ci_cat_output(NormN, N),
+              
+              AbnormN = sum(Value == 'Abnormal', na.rm = T),
+              AbnormF = freq_output(AbnormN, N),
+              AbnormCi = ci_cat_output(AbnormN, N)
+    ) %>% ungroup() %>% 
+    gather(key = 'Measure', value = 'Value', -c(diabetes, Parameter)) %>% 
+    spread(key = diabetes, value = Value) %>% 
+    arrange(match(Measure, measure_order_cat)) %>% 
+    knitr::kable()
+
+```
+
+
+
+
+
+

@@ -1,0 +1,170 @@
+---
+title: "Descriptive Statistics"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mlbench)
+library(ggplot2)
+```
+
+## Basics
+### Data Overview
+```{r}
+data(PimaIndiansDiabetes2)
+df <- PimaIndiansDiabetes2
+#View(df)
+
+str(df)
+```
+
+
+
+```{r}
+summary(df)
+```
+
+### Descriptive Statistics
+
+
+```{r}
+vec <- df$mass
+summary(vec)
+```
+```{r}
+min(vec); max(vec)
+mean(vec); median(vec)
+```
+```{r}
+min(vec, na.rm = T); max(vec, na.rm = T)
+mean(vec, na.rm = T); median(vec, na.rm = T)
+```
+
+
+```{r}
+quantile(vec, na.rm = T)
+# quantile(vec, probs = 0.5)
+quantile(vec, probs = c(0.25, 0.75), na.rm = T)
+```
+```{r}
+length(vec)
+
+sum(is.na(vec))
+```
+```{r}
+sd(vec, na.rm = T)
+var(vec, na.rm = T)
+
+sqrt(var(vec, na.rm = T))
+sd(vec, na.rm = T)^2
+```
+```{r}
+vec_clean <- na.omit(vec)
+sd(vec_clean)
+```
+```{r}
+range(vec_clean)
+IQR(vec_clean)
+```
+
+#### TASK #1.1 Measures of Center
+- Write your own function or one-liner to calculate mean, median, mode
+- Check the correctness using built-in functions for mean and median (there is no function for mode - try your one for different cases)
+- Visualize (histogram or density plot) the result for all these measures
+- Spoil you data with an outlier and repeat previous step
+#### Example
+```{r}
+x <- c(175, 176, 182, 165, 167, 172, 175, 196, 158, 172)
+x_mean <- mean(x)
+x_sp <- c(x, 210)
+x_mean_sp <- mean(x_sp)
+
+original <- data.frame(height = x, group = "original")
+spoiled <- data.frame(height = x_sp, group = "spoiled")
+dataviz <- rbind(original, spoiled)
+
+vline <- data.frame(z = c(x_mean, x_mean_sp), group = c("original", "spoiled"))
+
+ggplot(dataviz, aes(x = height)) +
+    geom_histogram(binwidth = 5) +
+    geom_vline(aes(xintercept = z), vline, colour = "red")+
+    facet_grid(group ~ .) +
+    theme_bw() + ggtitle("Mean")
+```
+
+#### TASK #1.2 Measures of Spread
+- Write your own function or one-liner to calculate variance and sd
+- Check the correctness using built-in functions 
+- Visualize (boxplot) the result for: Q1+Q3, 1-sd borders
+- Spoil you data with an outlier and repeat previous step
+#### Example
+```{r}
+x_range <- range(x)
+x_range_sp <- range(x_sp)
+
+hline <- data.frame(z = c(x_range, x_range_sp),
+                    group = rep(c("original", "spoiled"), each = 2))
+
+ggplot(dataviz, aes(y = height)) +
+    geom_boxplot() +
+    geom_hline(aes(yintercept = z), hline, colour = "red")+
+    facet_grid(. ~ group) +
+    theme_bw() + ggtitle("Range")
+```
+### Properties
+```{r}
+mean(x - 100); mean(x) - 100 # 1
+mean(x / 100); mean(x) / 100 # 2
+sum(x - mean(x)) # 3
+```
+#### Example
+```{r}
+x_ms_100 <- x - 100
+
+original <- data.frame(height = x, group = "original")
+trans_ms <- data.frame(height = x_ms_100, group = "x - 100")
+dataviz <- rbind(original, trans_ms)
+
+x_ms_mean <- mean(x_ms_100)
+vline <- data.frame(z = c(x_mean, x_ms_mean), group = c("original", "x - 100"))
+
+ggplot(dataviz, aes(x = height)) +
+    geom_density() +
+    geom_vline(aes(xintercept = z), vline, colour = "red")+
+    facet_wrap(vars(group), nrow = 2, scales = 'free_y') +
+    theme_bw() + ggtitle("Mean Properties")
+```
+```{r}
+var(x - 100); var(x) # 4
+var(x / 100); var(x) / 10000 # 5
+sd(x / 100); sd(x) / 100 # 6
+```
+
+#### TASK #1.3 Properties of Measures
+- Check the properties for your sample
+- Visualize result tabularly (for # 1-6) and graphically (for # 2 and 6)
+
+### Custom Report
+#### TASK #1.4 Statistical Report, part 1
+Create descriptive statistics on Pima data set (excluding first and last column)
+containing information for each column such as:
+- Number of valid observations (not NA)
+- Number of missing (NA) values
+- Mean, Median
+- Min, max
+- Q1, Q3
+- IQR, SD
+
+Order of columns:
+- Measure column first, then all the others in free order
+Order of measures:
+- As presented below
+
+Values rounded to the 2nd digit
+```{r}
+source('utils.R')
+numerical_stats(df[, -c(1,9)])
+```
+
+

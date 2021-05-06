@@ -1,0 +1,147 @@
+---
+title: "Normal Distribution and Interval Estimations"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mlbench)
+library(ggplot2)
+```
+
+```{r}
+data(PimaIndiansDiabetes2)
+df <- PimaIndiansDiabetes2
+```
+
+## Normal Distribution
+### Generate Sample
+
+```{r }
+set.seed(1)
+
+ns <- rnorm(n = 100, mean = 175, sd = 15)
+ns
+```
+
+### Visual Check
+```{r}
+plot(ns)
+```
+```{r}
+hist(ns, breaks = 20)
+plot(density(ns, bw = 5))
+```
+```{r}
+hist(ns, breaks = 20, freq = F)
+lines(density(ns, bw = 5), col = "blue")
+```
+```{r}
+mean(ns)
+sd(ns)
+n <- length(ns)
+sd(ns) * sqrt(n-1) / sqrt(n)
+
+library(MASS)
+fitdistr(ns, "normal")
+```
+
+```{r}
+hist(ns, breaks = 20, freq = F)
+lines(density(ns, bw = 5), col = "blue")
+lines(sort(ns), dnorm(sort(ns), mean = 176.6, sd = 13.4), col = "red")
+```
+### Formal Check
+
+```{r}
+shapiro.test(ns)
+```
+
+### Probabilities
+```{r}
+pnorm(q = 160, mean = 175, sd = 15)
+pnorm(q = 160, mean = 175, sd = 15, lower.tail = F)
+pnorm(q = 195, mean = 175, sd = 15, lower.tail = F)
+pnorm(q = 195, mean = 175, sd = 15)
+
+pnorm(q = 160, mean = 175, sd = 15) + pnorm(q = 195, mean = 175, sd = 15, lower.tail = F)
+
+pnorm(q = 195, mean = 175, sd = 15) - pnorm(q = 160, mean = 175, sd = 15)
+
+```
+
+### TASK #2.1 Sigma Rules
+- Check 1-2-3 sigma rules for normal distribution
+
+## Central Limit Theorem
+
+```{r}
+set.seed(8)
+population <- rnorm(1000000, 0, 1)
+sample_10 <- sample(population, 10)
+sample_50 <- sample(population, 50)
+sample_100 <- sample(population, 100)
+
+mean(sample_10)
+mean(sample_50)
+mean(sample_100)
+```
+
+
+```{r}
+sample_means <- numeric(30)
+set.seed(4)
+for (i in 1:30) {
+    sample_means[i] <- mean(sample(population, 10))
+}
+hist(sample_means)
+```
+
+```{r}
+sample_means <- numeric(30)
+set.seed(4)
+for (i in 1:30) {
+    sample_means[i] <- mean(sample(population, 100))
+}
+hist(sample_means)
+```
+
+### TASK #2.2 CLT
+- Generate population (n = 1000000)
+- Fix the size k for sample (k=10, k=100, k=1000)
+- Sample k observations from the population for 50 times
+- Calculate mean for each sample
+- Then calculate mean and sd - of sample means
+- Visualize for different k (for example, using faceting with common x-axis)
+- Compare
+
+## Confidence Intervals
+
+```{r}
+SE <- function(x) {sd(x) / sqrt(length(x))}
+
+SE(sample_10)
+SE(sample_50)
+SE(sample_100)
+```
+
+```{r}
+qt( (1-0.95)/2, df = 9)
+mean(sample_10) - 2.262157*SE(sample_10)
+t.test(sample_10)
+```
+```{r}
+t.test(sample_100)$conf.int
+```
+```{r}
+t.test(sample_100, conf.level = 0.99)$conf.int
+```
+
+### TASK #2.3 Statistical Report, part 2
+- Create a function for CI output, format: [xx.xx%, xx.xx%]
+- Add 95%-CI for your descriptive statistics as shown below
+- Is's important to have CI after Mean itself
+```{r}
+source('utils.R')
+numerical_stats_ci(df[, -c(1,9)])
+```

@@ -1,0 +1,125 @@
+---
+title: "Comparing Two Groups"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mlbench)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+data(PimaIndiansDiabetes2)
+df <- PimaIndiansDiabetes2
+```
+
+## Comparing Numericals
+### Visual Check
+```{r}
+numericals <- names(df)[2:8]
+for (param in numericals) {
+    p <- ggplot(df, aes(x = get(param), fill = diabetes)) +
+        geom_density(alpha=0.5) +
+        xlab(param) + theme_bw()
+    print(p)
+}
+
+```
+
+### Parametric: Student's t-Test
+```{r}
+# 1) check both samples for normal distribution
+# 2) variances are homogeneous (if not - Welch modification)
+# 3) perform 2-sample t-test
+
+# Normality test
+sh <- shapiro.test(df$pressure[df$diabetes == 'neg'])
+sh
+sh <- shapiro.test(df$pressure[df$diabetes == 'pos'])
+sh
+
+str(sh)
+
+sh$method
+round(sh$p.value, 4)
+```
+
+```{r}
+# Fisher test for variances
+var.test(pressure ~ diabetes, data = df)
+```
+
+```{r}
+# actually, we are not eligible to do so in given situation! but...
+# var.equal = FALSE
+tt <- t.test(df$triceps[df$diabetes == 'pos'],
+             df$triceps[df$diabetes == 'neg'])
+tt
+
+tt <- t.test(triceps ~ diabetes, data=df, var.equal = T)
+tt
+
+str(tt)
+tt$method
+round(tt$p.value, 4)
+round(tt$estimate, 2)
+tt$conf.int
+```
+
+### Non-Parametric:  Wilcoxon test / Mann-Whitney test
+
+```{r}
+# actually, we should use this approach =)
+mw <- wilcox.test(df$triceps[df$diabetes == 'pos'],
+                  df$triceps[df$diabetes == 'neg'])
+mw
+
+mw <- wilcox.test(triceps ~ diabetes, data = df)
+mw
+
+str(mw)
+mw$method
+round(mw$p.value, 4)
+```
+
+### Paired Tests
+
+```{r}
+# t.test(..., paired = FALSE -> paired = TRUE)
+# wilcox.test(..., paired = FALSE -> paired = TRUE)
+```
+
+## Comparing Categoricals
+
+```{r}
+df$bmi <- as.factor(ifelse(df$mass < 25, "Normal", "Abnormal"))
+ct <- chisq.test(df$bmi, df$diabete)
+ct
+
+str(ct)
+ct$method
+ct$p.value
+
+
+ft <- fisher.test(df$bmi, df$diabete)
+ft
+str(ft)
+ft$method
+ft$p.value
+ft$estimate
+ft$conf.int
+```
+
+### Paired tests
+
+```{r}
+# mcnemar.test() # 2x2
+```
+
+## TASK #4.1 Statistical Report with Tests Results
+- Take any data set you like, containing 2 groups of observation (balance by size)
+- Create report for numerical data with appropriate tests (description of 2 groups, comparing them)
+- Create report for categorical data with appropriate tests (description of 2 groups, comparing them)
+- When comparing you should put name of method and p-value
+### Example will be attached later
