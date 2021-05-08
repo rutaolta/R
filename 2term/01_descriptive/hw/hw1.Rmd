@@ -1,0 +1,220 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mlbench)
+library(ggplot2)
+library(dplyr)
+library(matrixStats)
+```
+
+#### TASK #1.1 Measures of Center
+
+- Write your own function or one-liner to calculate mean, median, mode
+- Check the correctness using built-in functions for mean and median (there is no function for mode - try your one for different cases)
+- Visualize (histogram or density plot) the result for all these measures
+- Spoil you data with an outlier and repeat previous step
+
+```{r}
+v <- c(175, 176, 182, 165, 167, 172, 175, 196, 158, 172)
+v_sp <- c(v, 0)
+```
+
+```{r}
+plot_hist <- function(x, x_sp, title, fun) {
+  original <- data.frame(height = x, group = "original")
+  spoiled <- data.frame(height = x_sp, group = "spoiled")
+  dataviz <- rbind(original, spoiled)
+
+  x_fun <- fun(x)
+  x_sp_fun <- fun(x_sp)
+
+  vline <- data.frame(z = c(x_fun, x_sp_fun), group = c("original", "spoiled"))
+  ggplot(dataviz, aes(x = height)) +
+      geom_histogram(binwidth = 5) +
+      geom_vline(aes(xintercept = z), vline, colour = "red")+
+      facet_grid(group ~ .) +
+      theme_bw() + ggtitle(title)
+}
+```
+
+## Mean
+
+```{r}
+my_mean <- function(x){
+  sum(x) / length(x)
+}
+
+# v_mean <- my_mean(v)
+# v_mean_sp <- my_mean(v_sp)
+
+if (my_mean(v) == mean(v)) "Mean is correct! my_mean(v) = mean(v)"
+if (my_mean(v_sp) == mean(v_sp)) "Mean is correct! my_mean(v_sp) = mean(v_sp)"
+
+plot_hist(v, v_sp, "Mean", my_mean)
+```
+
+## Median
+
+```{r}
+my_median <- function(x){
+  n = length(x)
+  half <- n %/% 2
+  
+  if(n %% 2 == 1) sort(x)[half]
+  else mean(sort(x)[half:(half+1)])
+}
+
+# v_median <- my_median(v)
+# v_median_sp <- my_median(v_sp)
+
+if (my_median(v) == median(v)) "Median is correct! my_median(v) = median(v)"
+if (my_median(v_sp) == median(v_sp)) "Median is correct! my_median(v_sp) = median(v_sp)"
+
+plot_hist(v, v_sp, "Median", my_median)
+```
+
+## Mode
+
+```{r}
+my_mode <- function(x) {
+  strtoi(names(sort(table(x), decreasing = TRUE)[1]), base=0L)
+}
+
+# v_mode <- my_mode(v)
+# v_mode_sp <- my_mode(v_sp)
+
+plot_hist(v, v_sp, "Mode", my_mode)
+```
+
+#### TASK #1.2 Measures of Spread
+- Write your own function or one-liner to calculate variance and sd
+- Check the correctness using built-in functions 
+- Visualize (boxplot) the result for: Q1+Q3, 1-sd borders
+- Spoil you data with an outlier and repeat previous step
+
+```{r}
+v_rpl <- replace(v, 1, 0)
+```
+
+## Variance
+
+```{r}
+my_var <- function(x) {
+  sum((x - mean(x))^2) / (length(x) - 1)
+}
+
+if (my_var(v) == var(v)) "Variance is correct! my_var(v) = var(v)"
+if (my_var(v_rpl) == var(v_rpl)) "Variance is correct! my_var(v_rpl) = var(v_rpl)"
+```
+
+## SD
+
+```{r}
+my_sd <- function(x) {
+  sqrt(my_var(x))
+}
+
+if (my_sd(v) == sd(v)) "SD is correct! my_sd(v) = sd(v)"
+if (my_sd(v_rpl) == sd(v_rpl)) "SD is correct! my_sd(v_rpl) = sd(v_rpl)"
+```
+
+#### TASK #1.3 Properties of Measures
+- Check the properties for your sample
+- Visualize result tabularly (for # 1-6) and graphically (for # 2 and 6)
+
+```{r}
+Name <- c("mean(v - 100) == mean(v) - 100", 
+          "mean(v / 100) == mean(v) / 100", 
+          "sum(v - mean(v))", 
+          "var(v - 100) == var(v)", 
+          "var(v / 100) == var(v) / 10000", 
+          "sd(v / 100) == sd(v) / 100")
+Value <- c(
+  round(my_mean(v - 100), 6) == round(my_mean(v) - 100, 6), # 1
+  round(my_mean(v / 100), 6) == round(my_mean(v) / 100, 6), # 2
+  round(sum(v - my_mean(v)), 6), # 3
+  round(my_var(v - 100), 6) == round(my_var(v), 6), # 4
+  round(my_var(v / 100), 6) == round(my_var(v) / 10000, 6), # 5
+  round(my_sd(v / 100), 6) == round(my_sd(v) / 100, 6) # 6
+)
+
+properties <- data.frame(Name, Value)
+properties
+```
+
+```{r}
+plot_properties <- function(x, denominator, title, fun) {
+  x_dv <- x / denominator
+
+  original <- data.frame(height = x, group = "original")
+  trans_dv <- data.frame(height = x_dv, group = sprintf("x / %d", denominator))
+  dataviz <- rbind(original, trans_dv)
+
+  x_fun <- fun(x) / denominator
+  x_dv_fun <- fun(x_dv)
+
+  vline <- data.frame(z = c(x_fun, x_dv_fun), group = c("original", sprintf("x / %d", denominator)))
+
+  ggplot(dataviz, aes(x = height)) +
+      geom_density() +
+      geom_vline(aes(xintercept = z), vline, colour = "red")+
+      facet_wrap(vars(group), nrow = 2, scales = 'free_y') +
+      theme_bw() + ggtitle(sprintf(title, denominator))
+}
+```
+
+```{r}
+denominator = 5
+plot_properties(v, denominator, "Mean divide properties [my_mean(x); my_mean(x / %d)]", my_mean)
+```
+
+```{r}
+denominator = 5
+plot_properties(v, denominator, "Sd divide properties [my_sd(x); my_sd(x / %d)]", sd)
+```
+
+### Custom Report
+#### TASK #1.4 Statistical Report, part 1
+Create descriptive statistics on Pima data set (excluding first and last column)
+containing information for each column such as:
+- Number of valid observations (not NA)
+- Number of missing (NA) values
+- Mean, Median
+- Min, max
+- Q1, Q3
+- IQR, SD
+
+Order of columns:
+- Measure column first, then all the others in free order
+Order of measures:
+- As presented below
+
+Values rounded to the 2nd digit
+
+```{r}
+library(dplyr)
+
+data(PimaIndiansDiabetes2)
+df <- PimaIndiansDiabetes2[2:8]
+
+my_summary <- function(x) {
+  q1 <- round(sapply(x, quantile, probs = 0.25, na.rm = TRUE), 2)
+  q3 <- round(sapply(x, quantile, probs = 0.75, na.rm = TRUE), 2)
+  res <- data.frame(
+    N = sapply(x, function(x) sum(!is.na(x))),
+    Missed = sapply(x, function(x) sum(is.na(x))),
+    Mean = round(sapply(x, mean, na.rm = TRUE), 2), 
+    Median = round(sapply(x, median, na.rm = TRUE), 2),
+    Min = round(sapply(x, min, na.rm = TRUE), 2),
+    Max = round(sapply(x, max, na.rm = TRUE), 2),
+    Q1 = q1,
+    Q3 = q3,
+    IQR = q3 - q1,
+    SD = round(sapply(x, sd, na.rm = TRUE), 2)
+    )
+  res <- t(res)
+  data.frame(res[,order(colnames(res))])
+}
+
+df <- my_summary(df)
+tibble(cbind(Measurements = row.names(df), df))
+```
