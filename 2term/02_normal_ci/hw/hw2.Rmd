@@ -1,0 +1,99 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mlbench)
+library(ggplot2)
+library(dplyr)
+```
+
+### TASK #2.1 Sigma Rules
+- Check 1-2-3 sigma rules for normal distribution
+
+```{r}
+ns <- rnorm(n = 100, mean = 100, sd = 10)
+```
+
+### TASK #2.2 CLT
+- Generate population (n = 1000000)
+- Fix the size k for sample (k=10, k=100, k=1000)
+- Sample k observations from the population for 50 times
+- Calculate mean for each sample
+- Then calculate mean and sd - of sample means
+- Visualize for different k (for example, using faceting with common x-axis)
+- Compare
+
+```{r}
+population <- rnorm(1000000, 0, 1)
+sample_10 <- sample(population, 10)
+sample_100 <- sample(population, 100)
+sample_1000 <- sample(population, 1000)
+
+sample_means_10 <- numeric(50)
+sample_means_100 <- numeric(50)
+sample_means_1000 <- numeric(50)
+set.seed(4)
+for (i in 1:30) {
+    sample_means_10[i] <- mean(sample(population, 10))
+    sample_means_100[i] <- mean(sample(population, 100))
+    sample_means_1000[i] <- mean(sample(population, 1000))
+}
+
+mean_10 <- mean(sample_means_10)
+mean_100 <- mean(sample_means_100)
+mean_1000 <- mean(sample_means_1000)
+
+sd_10 <- sd(sample_means_10)
+sd_100 <- sd(sample_means_100)
+sd_1000 <- sd(sample_means_1000)
+```
+
+### TASK #2.3 Statistical Report, part 2
+- Create a function for CI output, format: [xx.xx%, xx.xx%]
+- Add 95%-CI for your descriptive statistics as shown below
+- Is's important to have CI after Mean itself
+
+```{r}
+SE <- function(x) {sd(x) / sqrt(length(x))}
+
+CI <- function(x) {
+    x <- x[!is.na(x)]
+    vqt <- qt( (1-0.95)/2, df = 9)
+    l <- round(mean(x) + vqt*SE(x), 2)
+    u <- round(mean(x) - vqt*SE(x), 2)
+    sprintf('[%.2f, %.2f]', l, u)
+}
+```
+
+```{r}
+data(PimaIndiansDiabetes2)
+df <- PimaIndiansDiabetes2[2:8]
+
+my_summary <- function(x) {
+  q1 <- round(sapply(x, quantile, probs = 0.25, na.rm = TRUE), 2)
+  q3 <- round(sapply(x, quantile, probs = 0.75, na.rm = TRUE), 2)
+  res <- data.frame(
+    N = sapply(x, function(x) sum(!is.na(x))),
+    Missed = sapply(x, function(x) sum(is.na(x))),
+    Mean = round(sapply(x, mean, na.rm = TRUE), 2), 
+    '95% CI' = sapply(x, function(x) {
+                                        x <- x[!is.na(x)]
+                                        vqt <- qt( (1-0.95)/2, df = 9)
+                                        l <- round(mean(x) + vqt*SE(x), 2)
+                                        u <- round(mean(x) - vqt*SE(x), 2)
+                                        sprintf("[%.2f, %.2f]", l, u)
+                                    }),
+    Median = round(sapply(x, median, na.rm = TRUE), 2),
+    Min = round(sapply(x, min, na.rm = TRUE), 2),
+    Max = round(sapply(x, max, na.rm = TRUE), 2),
+    Q1 = q1,
+    Q3 = q3,
+    IQR = q3 - q1,
+    SD = round(sapply(x, sd, na.rm = TRUE), 2)
+    )
+  
+  res <- t(res)
+  data.frame(res[,order(colnames(res))])
+}
+
+df <- my_summary(df)
+tibble(cbind(Measurements = row.names(df), df))
+```
