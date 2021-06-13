@@ -1,0 +1,182 @@
+---
+title: "GLM"
+author: "Bogdanova V."
+date: '14-27 мая 2021 г '
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+```
+# Снятие ограничений модели / ASSUMPTIONS work around
+
+# Additivity / Аддитивность
+y = b0 + b1x1 + b2x2 + e
+y = b0 + b1x1 + b2x2 + b3x1x2
+y = b0 + (b1 + b3x2)x1 + b2x2
+y = b0 + B1x1 + b2x2, B1 = b1 + b3x2
+
+```{r}
+summary(iris_df)
+plot(iris_df$Length, iris_df$Width)
+```
+
+
+```{r}
+lm_fit <- lm(Width ~ Length, iris_df)
+summary(lm_fit)
+ggplot(lm_fit, aes(x = Length, y = Width)) +
+    geom_point() +
+    geom_line(aes(y = .fitted), color = "red", size = 1)
+```
+
+```{r}
+lm_fit_2 <- lm(Width ~ Length + Part, iris_df)
+summary(lm_fit_2)
+
+```
+
+```{r}
+lm_fit_3 <- lm(Width ~ Length * Part, iris_df)
+# lm_fit_3 <- lm(Width ~ Length + Part + Length:Part, iris_df)
+summary(lm_fit_3)
+
+```
+```{r}
+(90.75-85.64)/(100-85.64)
+```
+```{r}
+ggplot(lm_fit_2, aes(x = Length, y = Width, color = Part)) +
+    geom_point() +
+    geom_line(aes(y = .fitted), size = 1)
+
+ggplot(lm_fit_3, aes(x = Length, y = Width, color = Part)) +
+    geom_point() +
+    geom_line(aes(y = .fitted), size = 1)
+```
+
+## Линейность/ Linearity
+
+```{r}
+ggplot(mtcars, aes(x = hp, y = mpg)) +
+    geom_point() +
+    geom_smooth(formula = y ~ x, method = "lm", se=F) +
+    geom_smooth(formula = y ~ poly(x, 2), method = "lm", se=F, color = "red") +
+    geom_smooth(formula = y ~ poly(x, 5), method = "lm", se=F, color = "green")
+    
+    
+```
+
+y = b0 + b1x1 + e
+y = b0 + b1x1 + b2(x1^2) + e
+y = b0 + b1x1 + b2Х2 + e
+
+```{r}
+mtcars$hp2 <- (mtcars$hp)^2
+lm_fit_4 <- lm(mpg ~ hp, mtcars)
+summary(lm_fit_4)
+```
+
+```{r}
+lm_fit_5 <- lm(mpg ~ hp + hp2, mtcars)
+summary(lm_fit_5)
+```
+
+```{r}
+mtcars$hp3 <- (mtcars$hp)^3
+mtcars$hp4 <- (mtcars$hp)^4
+mtcars$hp5 <- (mtcars$hp)^5
+lm_fit_6 <- lm(mpg ~ hp + hp2 + hp3 + hp4 + hp5, mtcars)
+summary(lm_fit_6)
+```
+
+# Проблемы / Problems
+
+## Нелинейность данных / Non-linear data
+```{r}
+plot(lm_fit_4, which = 1)
+plot(lm_fit_5, which = 1)
+```
+Преобразование предикторов Predictors' Transformation: log(x), sqrt(x), x^2
+
+## Корреляция остатков Residuals correlation
+Временные ряды Time Series
+
+## Гетероскедастичность дисперсии остатков / 
+Преобразование отклика Response Transformation: log(y), sqrt(y)
+
+## Выбросы и Разбалансировка 
+## Outliers and High Leverage points
+y(i) отличается/not typical - выброс/outlier
+x(i) отличается/not typical - влиятельное наблюдение / high leverage point
+
+```{r}
+qplot(Sepal.Width, Sepal.Length, data = setosa_sepal)
+qplot(Sepal.Width, Sepal.Length, data = setosa_out)
+qplot(Sepal.Width, Sepal.Length, data = setosa_lev)
+```
+
+
+```{r}
+ggplot(setosa_all, aes(x = Sepal.Width, y = Sepal.Length)) +
+    geom_point() +
+    geom_smooth(method = "lm", se=F, color = "red") +
+    geom_smooth(data = setosa_sepal, method = "lm", se=F, color = "green") +
+    geom_smooth(data = setosa_out, method = "lm", se=F, color = "blue") +
+    geom_smooth(data = setosa_lev, method = "lm", se=F, color = "orange")
+
+```
+
+```{r}
+lm_fit_8 <- lm(Sepal.Length ~ Sepal.Width, data = setosa_all)
+summary(lm_fit_8)
+plot(lm_fit_8)
+```
+1/n - min, 1 - max;
+0.02
+```{r}
+lm_fit_9 <- lm(Sepal.Length ~ Sepal.Width, data = setosa_out)
+summary(lm_fit_9)
+plot(lm_fit_9)
+
+# lm_fit_9 <- lm(Sepal.Length ~ Sepal.Width, data = setosa_sepal)
+# summary(lm_fit_9)
+# plot(lm_fit_9)
+```
+
+## Коллинеарность
+
+```{r}
+lm_fit_10 <- lm(Sepal.Length ~ ., data = setosa)
+summary(lm_fit_10)
+plot(lm_fit_10)
+```
+
+```{r}
+pairs(setosa)
+cor(setosa)
+```
+
+
+Фактор инфляции дисперсии
+```{r}
+library(car)
+vif(lm_fit_10)
+```
+>10-15
+
+
+```{r}
+lm_fit_11 <- lm(Sepal.Length ~ . - Petal.Width, data = setosa)
+summary(lm_fit_11)
+```
+
+# TASK Multiple LM ----
+
+- Take the same data used for simple linear regression
+- Use correlation analysis and VIF to choose several predictors
+- Create multiple linear model based on them
+- Check residuals with diagnostics
+- If needed fix the problems
+

@@ -5,11 +5,22 @@ library(ggplot2)
 library(dplyr)
 ```
 
+
 ### TASK #2.1 Sigma Rules
 - Check 1-2-3 sigma rules for normal distribution
 
 ```{r}
-ns <- rnorm(n = 100, mean = 100, sd = 10)
+ns <- rnorm(n = 1000000)
+mean_ <- mean(ns)
+sd_ <- sd(ns)
+
+calc_sigma <- function(ns_, mean_, sd_, num) {
+  round((1 - (mean((ns_ > (mean_ + num * sd_))) + mean((ns_ < (mean_ - num * sd_))))) * 100, 2)
+}
+
+sprintf("Theoretical 1sigma = 68.26, checked value = %.2f", calc_sigma(ns, mean_, sd_, 1))
+sprintf("Theoretical 2sigma = 95.44, checked value = %.2f", calc_sigma(ns, mean_, sd_, 2))
+sprintf("Theoretical 3sigma = 99.72, checked value = %.2f", calc_sigma(ns, mean_, sd_, 3))
 ```
 
 ### TASK #2.2 CLT
@@ -22,28 +33,31 @@ ns <- rnorm(n = 100, mean = 100, sd = 10)
 - Compare
 
 ```{r}
-population <- rnorm(1000000, 0, 1)
-sample_10 <- sample(population, 10)
-sample_100 <- sample(population, 100)
-sample_1000 <- sample(population, 1000)
+population <- rnorm(1000000)
+sample_size <- c(10, 100, 1000)
 
-sample_means_10 <- numeric(50)
-sample_means_100 <- numeric(50)
-sample_means_1000 <- numeric(50)
-set.seed(4)
-for (i in 1:30) {
-    sample_means_10[i] <- mean(sample(population, 10))
-    sample_means_100[i] <- mean(sample(population, 100))
-    sample_means_1000[i] <- mean(sample(population, 1000))
+calc_means <- function(population_, k_, times_) {
+  sample_means <- numeric(times_)
+  for (t in 1:times_)
+    sample_means[t] <- mean(sample(population_, k_))
+  sample_means
 }
 
-mean_10 <- mean(sample_means_10)
-mean_100 <- mean(sample_means_100)
-mean_1000 <- mean(sample_means_1000)
-
-sd_10 <- sd(sample_means_10)
-sd_100 <- sd(sample_means_100)
-sd_1000 <- sd(sample_means_1000)
+par(mfrow=c(1,3))
+for (k in sample_size) {
+  sample_means <- calc_means(population, k, 50)
+  mn <- mean(sample_means)
+  std <- sd(sample_means)
+  
+  df <- data.frame(sample_means=sample_means, sample_size=k, mean=mn, std=std)
+  print(ggplot(df, aes(x=sample_means)) + 
+    geom_histogram(color = "orange", bins=30) + 
+    geom_vline(xintercept = mn, color = "red", size = 0.4, show.legend = T) + 
+    geom_vline(xintercept = std, color = "blue", size = 0.4, show.legend = T) + 
+    geom_vline(xintercept = -std, color = "blue", size = 0.4, show.legend = T) +
+    labs(title = sprintf("k=%.0f, mean=%.2f, sd=%.2f", k, mn, std)) +
+    xlim(-1, 1))
+}
 ```
 
 ### TASK #2.3 Statistical Report, part 2

@@ -1,0 +1,172 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mlbench)
+library(ggplot2)
+library(dplyr)
+library(MultinomialCI)
+library(tidyr)
+```
+
+
+### TASK #3.1 Categorical Output 1
+- Create functions for categorical output for binomial factor
+
+```{r}
+data(PimaIndiansDiabetes2)
+df <- PimaIndiansDiabetes2
+
+df$bmi <- as.factor(ifelse(df$mass < 25, "Normal", "Abnormal"))
+
+vec_cat <- df$bmi
+summary(vec_cat)
+
+x <- 106
+n <- 757
+```
+
+```{r}
+freq_output <- function(x, n){
+  #paste(x, " / ", n, " (", round((x/n) * 100), "%)", sep="")
+  paste(x, " / ", n, " (", round(binom.test(x, n)$estimate * 100, 2), "%)", sep="")
+} 
+  
+ci_cat_output <- function(x, n){
+  binom_test <- round(as.vector(binom.test(x, n)$conf.int) * 100, 2)
+  paste0("95% CI: [", binom_test[1], "%, ", binom_test[2], "%]", sep="")
+}
+
+freq_output(x, n)
+ci_cat_output(x, n)
+
+freq_output(n - x, n)
+ci_cat_output(n - x, n)
+```
+
+#### TASK #3.2 Categorical Output 2
+- Create function for categorical output for multinomial factor
+
+```{r}
+df$bmi_multi <- as.factor(ifelse(df$mass < 25, "Normal",
+                          ifelse(df$mass < 35, "NoSig Abnorm", "Sig Abnorm")))
+summary(df$bmi_multi)
+
+vec_cat_m <- df$bmi_multi
+
+tt <- table(vec_cat_m)
+tt_p <- tt / sum(tt)
+round(tt_p * 100, 2)
+
+multinomialCI(tt, alpha = 0.05)
+```
+
+```{r}
+ci_multicat_output = function(tt_, k) {
+  multinom <- round(as.vector(multinomialCI(tt_, alpha = 0.05)[k, ]) * 100, 2)
+  paste("95% CI: [", multinom[1], "%, ", multinom[2], "%]", sep="")
+}
+
+ci_multicat_output(tt, k = 1)
+ci_multicat_output(tt, k = 2)
+ci_multicat_output(tt, k = 3)
+```
+
+#### TASK #3.3 Categorical Output Fully
+- Study the example
+- Perform categorical stats output both(!) for bmi and bmi_multi within the same report
+
+```{r}
+table(df$bmi, df$diabetes)
+table(df$bmi_multi, df$diabetes)
+```
+
+```{r}
+# Pearson's Chi-squared Test 
+chisq.test(df$bmi, df$diabete)
+chisq.test(table(df$bmi, df$diabetes))
+
+chisq.test(df$bmi_multi, df$diabetes)
+```
+
+```{r}
+# Fisher's Exact Test
+# - for 2x2 cross tabs (but not only)
+# - when for some cell count < 10 or <5 (you can meet different in literature)
+
+fisher.test(df$bmi, df$diabete)
+
+fisher.test(df$bmi_multi, df$diabete)
+fisher.test(table(df$bmi_multi, df$diabetes))
+```
+
+```{r}
+measure_order_cat <- c("N", "Missing",
+                       "NormN", "NormF", "NormCi",
+                       "AbnormN", "AbnormF", "AbnormCi")
+
+bmi <- df %>% select(bmi, diabetes) %>% 
+    gather(key = 'Parameter', value = 'Value', -diabetes) %>% 
+    group_by(diabetes, Parameter) %>% 
+    summarise(N = n() - sum(is.na(Value)),
+              Missing = sum(is.na(Value)),
+              
+              NormN = sum(Value == 'Normal', na.rm = T),
+              NormF = freq_output(NormN, N),
+              NormCi = ci_cat_output(NormN, N),
+              
+              AbnormN = sum(Value == 'Abnormal', na.rm = T),
+              AbnormF = freq_output(AbnormN, N),
+              AbnormCi = ci_cat_output(AbnormN, N)
+    ) %>% ungroup() %>% 
+    gather(key = 'Measure', value = 'Value', -c(diabetes, Parameter)) %>% 
+    spread(key = diabetes, value = Value) %>% 
+    arrange(match(Measure, measure_order_cat))
+
+bmi$Parameter[1:2] <- c('both', 'both')
+#bmi%>%knitr::kable()
+  
+measure_order_cat_multi <- c("NormN", "NormF", "NormCi",
+                       "NoSigAbnormN", "NoSigAbnormF", "NoSigAbnormCi",
+                       "SigAbnormN", "SigAbnormF", "SigAbnormCi")
+
+bmi_multi <- df %>% select(bmi_multi, diabetes) %>% 
+    gather(key = 'Parameter', value = 'Value', -diabetes) %>% 
+    group_by(diabetes, Parameter) %>% 
+    summarise(N = n() - sum(is.na(Value)),
+              
+              NormN = sum(Value == 'Normal', na.rm = T),
+              NormF = freq_output(NormN, N),
+              NormCi = ci_multicat_output(tt = table(Value), k = 1),
+              
+              NoSigAbnormN = sum(Value == 'NoSig Abnorm', na.rm = T),
+              NoSigAbnormF = freq_output(NoSigAbnormN, N),
+              NoSigAbnormCi = ci_multicat_output(tt = table(Value), k = 2),
+              
+              SigAbnormN = sum(Value == 'Sig Abnorm', na.rm = T),
+              SigAbnormF = freq_output(SigAbnormN, N),
+              SigAbnormCi = ci_multicat_output(tt = table(Value), k = 3)
+    ) %>% ungroup() %>% 
+    gather(key = 'Measure', value = 'Value', -c(diabetes, Parameter)) %>% 
+    spread(key = diabetes, value = Value) %>% 
+    arrange(match(Measure, measure_order_cat_multi))
+
+bmi_multi <- bmi_multi[bmi_multi$Measure!='N',]
+
+rbind(bmi, bmi_multi)%>% 
+    knitr::kable()
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
