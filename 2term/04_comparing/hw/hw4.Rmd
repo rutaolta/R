@@ -1,0 +1,70 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mlbench)
+library(dplyr)
+library(ggplot2)
+```
+
+
+## TASK #4.1 Statistical Report with Tests Results
+- Take any data set you like, containing 2 groups of observation (balance by size)
+- Create report for numerical data with appropriate tests (description of 2 groups, comparing them)
+- Create report for categorical data with appropriate tests (description of 2 groups, comparing them)
+- When comparing you should put name of method and p-value
+
+# Dataset choise and balance check
+```{r}
+dfi <- read.table('insurance.csv', header=T, sep=",")
+
+nrow(dfi[dfi$sex == 'female',])
+nrow(dfi[dfi$sex == 'male',])
+```
+
+# Numerical data
+```{r}
+numericals <- names(dfi)[c(1,3,4,7)]
+for (param in numericals) {
+    p <- ggplot(dfi, aes(x = get(param), fill = sex)) +
+        geom_density(alpha=0.5) +
+        xlab(param) + theme_bw()
+    print(p)
+}
+```
+
+```{r}
+# Normality test
+shi <- shapiro.test(dfi$bmi[dfi$sex == 'female'])
+paste(shi$method, ": p-value=", round(shi$p.value, 4), sep='')
+shi <- shapiro.test(dfi$bmi[dfi$sex == 'male'])
+paste(shi$method, ": p-value=", round(shi$p.value, 4), sep='')
+
+#distributions are not normal, we can't apply t-test
+```
+
+```{r}
+mwi <- wilcox.test(bmi ~ sex, data = dfi)
+paste(mwi$method, ": p-value=", round(mwi$p.value, 4), sep='')
+# We can't reject H0, samples can come from same population
+```
+# Categorical data
+```{r}
+cti <- chisq.test(dfi$smoker, dfi$sex)
+paste(cti$method, ": p-value=", round(cti$p.value, 4), sep='')
+
+fti <- fisher.test(dfi$smoker, dfi$sex)
+paste(fti$method, ": p-value=", round(fti$p.value, 4), sep='')
+
+#fti$estimate
+#fti$conf.int
+```
+# Result
+```{r}
+Objects=c('bmi vs sex', 'smoker vs sex', 'smoker vs sex')
+Type=c('Numerical', 'Categorical', 'Categorical')
+Method=c(mwi$method, cti$method, fti$method)
+P_value=c(round(mwi$p.value, 4), round(cti$p.value, 4), round(fti$p.value, 4))
+H0=c("can't reject", "reject", "reject")
+
+res <- data.frame(Objects, Type, Method, P_value, H0)
+res %>% knitr::kable()
+```
