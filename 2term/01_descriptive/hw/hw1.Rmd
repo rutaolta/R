@@ -75,6 +75,7 @@ plot_hist(v, v_sp, "Median", my_median)
 ## Mode
 
 ```{r}
+# TODO if sample with several modes
 my_mode <- function(x) {
   strtoi(names(sort(table(x), decreasing = TRUE)[1]), base=0L)
 }
@@ -158,18 +159,19 @@ plot_properties <- function(x, denominator, title, fun) {
       geom_density() +
       geom_vline(aes(xintercept = z), vline, colour = "red")+
       facet_wrap(vars(group), nrow = 2, scales = 'free_y') +
-      theme_bw() + ggtitle(sprintf(title, denominator))
+      theme_bw() + ggtitle(sprintf(title, denominator, denominator))
 }
 ```
 
 ```{r}
 denominator = 5
-plot_properties(v, denominator, "Mean divide properties [my_mean(x); my_mean(x / %d)]", my_mean)
+plot_properties(v, denominator, "Mean divide properties [my_mean(x) / %d; my_mean(x / %d)]", my_mean)
 ```
 
-```{r}
+```{r} 
+# TODO two SDs around mean
 denominator = 5
-plot_properties(v, denominator, "Sd divide properties [my_sd(x); my_sd(x / %d)]", sd)
+plot_properties(v, denominator, "Sd divide properties [my_sd(x) / %d; my_sd(x / %d)]", sd)
 ```
 
 ### Custom Report
@@ -216,5 +218,6 @@ my_summary <- function(x) {
 }
 
 df <- my_summary(df)
-tibble(cbind(Measurements = row.names(df), df))
+tibble(cbind(Measurements = row.names(df), df))%>% 
+    knitr::kable()
 ```

@@ -51,12 +51,13 @@ for (k in sample_size) {
   
   df <- data.frame(sample_means=sample_means, sample_size=k, mean=mn, std=std)
   print(ggplot(df, aes(x=sample_means)) + 
-    geom_histogram(color = "orange", bins=30) + 
+    geom_histogram(color = "orange", fill='white', bins=30) + 
     geom_vline(xintercept = mn, color = "red", size = 0.4, show.legend = T) + 
     geom_vline(xintercept = std, color = "blue", size = 0.4, show.legend = T) + 
     geom_vline(xintercept = -std, color = "blue", size = 0.4, show.legend = T) +
     labs(title = sprintf("k=%.0f, mean=%.2f, sd=%.2f", k, mn, std)) +
-    xlim(-1, 1))
+    xlim(-1, 1) +
+    theme_bw())
 }
 ```
 
@@ -109,5 +110,6 @@ my_summary <- function(x) {
 }
 
 df <- my_summary(df)
-tibble(cbind(Measurements = row.names(df), df))
+tibble(cbind(Measurements = row.names(df), df))%>% 
+    knitr::kable()
 ```

@@ -1,0 +1,128 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mlbench)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(corrplot)
+```
+
+
+## TASK 5
+
+Anscombe’s data set
+• Scatter plot facetted by set
+• Summary calculation (mean, sd) grouped by set
+• Pearson’s correlation by set, and non-parametric, and p-values
+• Add geom_smooth() to the plot
+
+```{r}
+data(anscombe)
+raw_df <- anscombe
+raw_df %>% knitr::kable()
+```
+
+```{r}
+df <- data.frame(X=gather(raw_df[1:4])$value, 
+                 Y=gather(raw_df[5:8])$value, 
+                 XY=paste0('(', X$key, ',', Y$key, ')'))
+head(df) %>% knitr::kable()
+```
+
+```{r}
+p <- ggplot(df, aes(X, Y)) + 
+  geom_point() +
+  facet_wrap(~XY, ncol = 2) +
+  geom_smooth(formula = y ~ x, method = "lm", fullrange = T)
+p
+```
+
+```{r}
+colnames <- c("mean X", "mean Y", 'sd X','sd Y','Pearson correlation','Kendall correlation', 'Spearman correlation','P-value')
+
+summary <- df %>% 
+    group_by(XY) %>% 
+    summarize("mean X" = round(mean(X, na.rm = T), 4),
+              "mean Y" = round(mean(Y, na.rm = T), 4),
+              "sd X" = round(sd(X, na.rm = T), 4),
+              "sd Y" = round(sd(X, na.rm = T), 4),
+              "Pearson correlation" = round(cor(X, Y, method = "pearson"), 4),
+              "Kendall correlation" = round(cor(X, Y, method = "kendall"), 4),
+              "Spearman correlation" = round(cor(X, Y, method = "spearman"), 4),
+              "P-value" = signif(cor.test(X, Y)$p.value, 1)) %>%  
+    gather(key = 'Property', value = 'Value', -c(XY))  %>%  
+    spread(key = XY, value = Value) %>% 
+    arrange(match(Property, colnames))
+
+summary %>% knitr::kable()
+```
+# TASK 6
+
+Other data set: https://archive.ics.uci.edu/ml/datasets/Air+quality
+• Explore data set, clean if needed
+• Explore each variable independently
+• Cross correlations
+• Build simple linear models with each predictor, check assumptions
+• For one of the models create train-test sets, plot the model, for the test set color
+real and predicted points differently; R^2 and p-value to title
+
+```{r}
+df <- read.table("AirQualityUCI/AirQualityUCI.csv", sep = ";", header = T, dec = ",")
+summary(df)
+```
+```{r}
+dim(df)
+```
+
+```{r}
+df <- na.omit(df[, -c(16, 17)])
+for(i in 1:ncol(df)){
+  df[is.na(df[,i]), i] <- mean(df[,i], na.rm = TRUE)
+}
+summary(df)
+```
+```{r}
+dim(df)
+```
+  
+```{r}
+head(df) %>% knitr::kable()
+```
+
+```{r}
+my_summary <- function(df) {
+      mean <- sapply(df, function(x) round(mean(x, na.rm = T), 2))
+      median <- sapply(df, function(x) round(median(x, na.rm = T), 2))
+      min <- sapply(df, function(x) round(min(x, na.rm = T), 2))
+      max <- sapply(df, function(x) round(max(x, na.rm = T), 2))
+      CI <- sapply(df, function(x) paste(round(t.test(x)$conf.int, 2), collapse = " : "))
+      Std <- sapply(df, function(x) round(sd(x, na.rm = T), 2))
+      Q1 <- sapply(df, function(x) round(quantile(x, na.rm = T)[c(2)], 2))
+      Q3 <- sapply(df, function(x) round(quantile(x, na.rm = T)[c(4)], 2))
+      IQR <- round((Q3 - Q1), 2)
+    
+      res <- data.frame(Mean=mean, Median=median, Min=min, Max = max,
+                        Q1=Q1, Q3 = Q3, IQR = IQR)
+      return(res)
+}
+
+my_summary(df[3:15]) %>% knitr::kable()
+```
+
+```{r}
+df_ <- gather(df[3:11])
+
+p <- ggplot(df_, aes(key, value)) + 
+  geom_violin() +
+  geom_boxplot(notch=TRUE)
+
+
+p + facet_wrap(~key, ncol = 3, scales = "free") + theme_minimal()
+```
+
+```{r}
+M <- cor(df[3:11])
+corrplot(M, method = "number")
+#corrplot(M, type = "upper", order = "hclust", cl.pos = "n",
+#         col = c("black", "white"), bg = "lightblue")
+```
