@@ -1,0 +1,59 @@
+---
+title: "HW6"
+author: "aliya yakupova"
+date: "1/7/2021"
+output: html_document
+---
+```{r env_b, include=FALSE}
+# install.packages("gapminder")
+# install.packages('tidyverse')
+# install.packages("ggplot2")
+library("gapminder")
+library("tidyr")
+library("dplyr")
+library("ggplot2")
+library(scales)
+```
+
+# Visuals pt.2
+
+## Task 1
+Gapminder dataset, All years facet
+
+```{r gapminder_plot, echo=FALSE}
+gapminder %>%
+  ggplot(aes(x = gdpPercap,
+             y = lifeExp,
+             color = continent,
+             size = pop)) +
+  geom_point() + 
+  facet_wrap(~ year, ncol=4, nrow=3) +
+  scale_x_log10()
+```
+
+## Task 2
+Airquality, transform, plot all measures by time
+
+```{r airquality_plot, echo=FALSE}
+airquality %>% 
+  gather(Measure, Value, Ozone:Temp) %>%
+  ggplot(aes(x = Day,
+             y = Value,
+             color = Measure)) +
+  geom_point() + 
+  geom_line(size = 0.5) +
+  facet_grid(Measure ~ Month, scales="free")
+```
+
+## Task 3
+Some numerical data: distributional plots
+
+```{r distributional_plot, echo=FALSE}
+airquality %>% 
+  mutate(MonthStr = as.character(Month)) %>%
+  ggplot(aes(x = Month,
+             y = Temp,
+             group = Month)) +
+  geom_violin() +
+  geom_jitter(aes(color = MonthStr), width = .3, alpha = .7)
+```
