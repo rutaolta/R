@@ -198,7 +198,10 @@ new_mod <- lm(data = train, CO.GT. ~ C6H6.GT.)
 summary(new_mod)
 ```
 ```{r}
-p <- train %>% ggplot(aes(x = C6H6.GT., y = CO.GT.)) + geom_point() + geom_smooth(method = "lm")
+p <- train %>% 
+  ggplot(aes(x = C6H6.GT., y = CO.GT.)) + 
+  geom_point() + 
+  geom_smooth(method = "lm")
 print(p)
 ```
 
@@ -218,7 +221,6 @@ df_test <- data.frame(key='test', "CO.GT."=test$CO.GT., "C6H6.GT."=test$C6H6.GT.
 df_predicted <-data.frame(key='predicted', "CO.GT."=test$CO.GT._pred, "C6H6.GT."=test$C6H6.GT.)
 
 long <- rbind(df_train, df_test, df_predicted)
-              
 head(long)
 ```
 
