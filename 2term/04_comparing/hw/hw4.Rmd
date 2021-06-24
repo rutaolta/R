@@ -99,14 +99,6 @@ numerical_test <- function(df, var1, var1_name, var2, var2_name, vals){
 res <- numerical_test(dfi, dfi$bmi, 'bmi', dfi$sex, 'sex', c('female', 'male'))
 res %>% knitr::kable()
 ```
-```{r}
-s1 <- c('1','2')
-s1_ <- append(s1, '3')
-s2 <- c('4','5')
-s2_ <- append(s2, '6')
-res <- data.frame(s1_, s2_)
-res %>% knitr::kable()
-```
 # Categorical data
 ```{r}
 # TODO auto-function

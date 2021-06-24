@@ -23,8 +23,10 @@ raw_df %>% knitr::kable()
 ```
 
 ```{r}
-df <- data.frame(X=gather(raw_df[1:4])$value, 
-                 Y=gather(raw_df[5:8])$value, 
+X = gather(raw_df[1:4])
+Y = gather(raw_df[5:8])
+df <- data.frame(X=X$value, 
+                 Y=Y$value, 
                  XY=paste0('(', X$key, ',', Y$key, ')'))
 head(df) %>% knitr::kable()
 ```
@@ -38,7 +40,7 @@ p
 ```
 
 ```{r}
-colnames <- c("mean X", "mean Y", 'sd X','sd Y','Pearson correlation','Kendall correlation', 'Spearman correlation','P-value')
+colnames <- c("mean X", "mean Y", 'sd X','sd Y','Pearson correlation','Kendall correlation', 'Spearman correlation','p-value')
 
 summary <- df %>% 
     group_by(XY) %>% 
@@ -49,13 +51,14 @@ summary <- df %>%
               "Pearson correlation" = round(cor(X, Y, method = "pearson"), 4),
               "Kendall correlation" = round(cor(X, Y, method = "kendall"), 4),
               "Spearman correlation" = round(cor(X, Y, method = "spearman"), 4),
-              "P-value" = signif(cor.test(X, Y)$p.value, 1)) %>%  
-    gather(key = 'Property', value = 'Value', -c(XY))  %>%  
+              "p-value" = signif(cor.test(X, Y)$p.value, 1)) %>%  
+    gather(key = 'Feature', value = 'Value', -c(XY))  %>%  
     spread(key = XY, value = Value) %>% 
-    arrange(match(Property, colnames))
+    arrange(match(Feature, colnames))
 
 summary %>% knitr::kable()
 ```
+
 # TASK 6
 
 Other data set: https://archive.ics.uci.edu/ml/datasets/Air+quality
@@ -75,10 +78,11 @@ dim(df)
 ```
 
 ```{r}
-df <- na.omit(df[, -c(16, 17)])
-for(i in 1:ncol(df)){
-  df[is.na(df[,i]), i] <- mean(df[,i], na.rm = TRUE)
-}
+df <- na.omit(df[, -c(1, 2, 16, 17)])
+df[df == -200] <- NA
+#for(i in 1:ncol(df)){
+#  df[is.na(df[,i]), i] <- mean(df[,i], na.rm = TRUE)
+#}
 summary(df)
 ```
 ```{r}
@@ -106,23 +110,190 @@ my_summary <- function(df) {
       return(res)
 }
 
-my_summary(df[3:15]) %>% knitr::kable()
+my_summary(df) %>% knitr::kable()
+```
+```{r}
+pairs(df)
 ```
 
 ```{r}
-df_ <- gather(df[3:11])
+dfg <- gather(df)
 
-p <- ggplot(df_, aes(key, value)) + 
-  geom_violin() +
+p <- ggplot(dfg, aes(key, value)) + 
   geom_boxplot(notch=TRUE)
 
+p + facet_wrap(~key, ncol = 5 , scales = "free") + 
+  theme_light()
+```
+```{r}
+corrplot.mixed(cor(df, use="pairwise.complete.obs", method = 'spearman'),
+               lower = "number", 
+               upper = "circle",
+               tl.col = "black", 
+               tl.pos = "lt",
+               sig.level = 0.05, 
+               insig = "blank")
+```
+```{r}
+# Function to add correlation coefficients
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...) {
+    usr <- par("usr")
+    on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    Cor <- abs(cor(x, y, method = 'spearman', use="pairwise.complete.obs")) # Remove abs function if desired
+    txt <- paste0(prefix, format(c(Cor, 0.123456789), digits = digits)[1])
+    if(missing(cex.cor)) {
+        cex.cor <- 0.4 / strwidth(txt)
+    }
+    text(0.5, 0.5, txt,
+         cex = 1 + cex.cor * Cor) # Resize the text by level of correlation
+}
 
-p + facet_wrap(~key, ncol = 3, scales = "free") + theme_minimal()
+# Plotting the correlation matrix
+pairs(df,
+      upper.panel = panel.cor,    # Correlation panel
+      lower.panel = panel.smooth) # Smoothed regression lines
+```
+```{r}
+#install.packages("GGally")
+#library("GGally", verbose = FALSE, quietly = TRUE)
+#d <- df[3:15]
+#p_ <- GGally::print_if_interactive
+#pm <- ggpairs(d, 
+#        columns = colnames(d), 
+#        upper = list(continuous = wrap("cor", size = 10)), 
+#        lower = list(continuous = "smooth"))
+#print(pm)
+```
+```{r}
+#d <- df[3:15]
+#d %>% ggpairs(., 
+#               lower = list(continuous = wrap("smooth", alpha = 0.3, size=0.1)))
 ```
 
 ```{r}
-M <- cor(df[3:11])
-corrplot(M, method = "number")
-#corrplot(M, type = "upper", order = "hclust", cl.pos = "n",
-#         col = c("black", "white"), bg = "lightblue")
+storage <- list()
+colpairs <- t(combn(names(df), 2))
+for(i in 1:(length(colpairs)/2)){
+  storage[[i]] <- lm(get(colpairs[i,1]) ~ get(colpairs[i,2]), data=df)
+  plotname <- paste(colpairs[i,1],"~",colpairs[i,2])
+  print(summary(storage[[i]]))
+  print(plot(storage[[i]], which = c(1,2), sub=plotname))
+}
+```
+
+```{r}
+#lm <- lm(PT08.S2.NMHC. ~ PT08.S1.CO., data=df)
+#summary(lm)
+#plot(lm, which = c(1,2))
+```
+
+```{r}
+set.seed(88)
+data <- df
+sample <- sample.int(n = nrow(data), size = floor(.75*nrow(data)))
+train <- data[sample, ]
+test <- data[-sample, ]
+new_mod <- lm(data = train, CO.GT. ~ C6H6.GT.)
+summary(new_mod)
+```
+```{r}
+p <- train %>% ggplot(aes(x = C6H6.GT., y = CO.GT.)) + geom_point() + geom_smooth(method = "lm")
+print(p)
+```
+
+```{r}
+pred <- predict(new_mod, newdata = test)
+head(pred)
+```
+
+```{r}
+test$CO.GT._pred <- pred
+head(test[c("CO.GT.","CO.GT._pred")])
+```
+
+```{r}
+df_train <- data.frame(key='train', "CO.GT."=train$CO.GT., "C6H6.GT."=train$C6H6.GT.)
+df_test <- data.frame(key='test', "CO.GT."=test$CO.GT., "C6H6.GT."=test$C6H6.GT.)
+df_predicted <-data.frame(key='predicted', "CO.GT."=test$CO.GT._pred, "C6H6.GT."=test$C6H6.GT.)
+
+long <- rbind(df_train, df_test, df_predicted)
+              
+head(long)
+```
+
+```{r}
+p <- long %>%
+  ggplot(aes(x = C6H6.GT., y = CO.GT., col=key)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se=F)
+
+R2 <- round(summary(new_mod)$r.squared*100,2)
+pvalue <- summary(new_mod)$coefficients[2,4]
+
+p + ggtitle(paste("R^2 :", R2, ", p-value : ", pvalue))
+
+```
+# MULTIPLE LINEAR REGRESSION
+
+CO.GT. - True hourly averaged concentration CO in mg/m^3 (reference analyzer)
+C6H6.GT. - True hourly averaged Benzene concentration in microg/m^3 (reference analyzer)
+NO2.GT. - True hourly averaged NO2 concentration in microg/m^3 (reference analyzer)
+PT08.S4.NO2. - PT08.S4 (tungsten oxide) hourly averaged sensor response (nominally NO2 targeted)
+
+```{r}
+new_mod10 <- lm(data = train, CO.GT. ~ C6H6.GT.)
+summary(new_mod10)
+```
+
+```{r}
+new_mod11 <- lm(data = train, CO.GT. ~ NO2.GT.)
+summary(new_mod11)
+```
+
+```{r}
+new_mod12 <- lm(data = train, CO.GT. ~ PT08.S4.NO2.)
+summary(new_mod12)
+```
+
+```{r}
+new_mod2 <- lm(data = train, CO.GT. ~ C6H6.GT. + NO2.GT.)
+print(summary(new_mod2))
+print(plot(new_mod2))
+```
+```{r}
+pred2 <- predict(new_mod2, newdata = test)
+test$CO.GT._pred2 <- pred2
+head(test[c("CO.GT.","CO.GT._pred2")])
+```
+
+```{r}
+print(
+  paste0(
+    "R^2: ", round(summary(new_mod2)$r.squared*100,2),
+    ", pvalue: C6H6.GT.=", summary(new_mod2)$coefficients[2,4], "; NO2.GT.=", summary(new_mod2)$coefficients[3,4]
+  )
+)
+```
+
+```{r}
+new_mod3 <- lm(data = train, CO.GT. ~ C6H6.GT. + NO2.GT. + PT08.S4.NO2.)
+print(summary(new_mod3))
+print(plot(new_mod3))
+```
+
+```{r}
+pred3 <- predict(new_mod3, newdata = test)
+test$CO.GT._pred3 <- pred3
+head(test[c("CO.GT.","CO.GT._pred3")])
+```
+```{r}
+print(
+  paste0(
+    "R^2: ", round(summary(new_mod3)$r.squared*100,2),
+    ", pvalue: C6H6.GT.=", summary(new_mod3)$coefficients[2,4], 
+            "; NO2.GT.=", summary(new_mod3)$coefficients[3,4], 
+            "; PT08.S4.NO2=", summary(new_mod3)$coefficients[4,4]
+  )
+)
 ```

@@ -1,0 +1,112 @@
+---
+title: "R 1st term project"
+author: "aliya yakupova"
+date: "1/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(RColorBrewer)
+```
+
+## Dataset descripton
+
+For the project we will take database of **locations of Earthquakes off Fiji** (<https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/quakes.html>)
+
+The data set give the locations of 1000 seismic events of MB > 4.0. The events occurred in a cube near Fiji since 1964.
+
+## Format
+
+A data frame with 1000 observations on 5 variables.
+
+1.	lat	numeric	**Latitude of event**
+
+2.	long	numeric	**Longitude**
+
+3.	depth	numeric	**Depth (km)**
+
+4.	mag	numeric	**Richter Magnitude**
+
+5.	stations	numeric	**Number of stations reporting**
+
+```{r pressure, echo=FALSE}
+# plot(pressure)
+require(graphics)
+quakes %>%
+  select(3:5) %>%
+  pairs(main = "Fiji Earthquakes, N = 1000", cex.main = 1.2, pch = ".")
+```
+
+```{r quakes}
+str(quakes)
+summary(quakes)
+sum(is.na(quakes))
+```
+
+As we see there are no NA and all types are proper.
+
+```{r quakes_plot, echo=FALSE}
+quakes %>%
+  #mutate(magnitude = rev(mag)) %>%
+  ggplot(aes(x = long,
+             y = lat,
+             color = mag)) +
+  geom_point() +
+  scale_fill_distiller(palette ="RdBu", direction = -1)
+  #scale_color_manual(values = rev(RColorBrewer::brewer.pal(3,'Blues'))) 
+  #geom_point(data = filter(quakes, mag >= 6), color = "red")
+  #scale_fill_discrete(name = "Remarkable", labels = c("mag >= 6"))
+```
+
+We can see that mostly earthquakes took a place at longitude 176 -- 186 and latitude -30 -- -15
+
+Now let's have a look where were the remarkable strength of earthquakes by Richter scale. 
+
+Magnitude 5 is known as moderate and higher is scaled like strong. At the plot earthquakes with magnitude equal or higher than 6 are colored red.
+
+As we can see there are very few strong earthquakes with remarkable damage.
+
+Now let's have a look at correlation of magnitude and depth.
+
+```{r quakes_plot_mag_depth, echo=FALSE}
+quakes %>%
+  ggplot(aes(x = mag,
+             y = depth,
+             color = stations)) +
+  geom_point()
+```
+
+We can't say that there is no significant correlation.
+
+Now have a look how many stations detected earthquake respectively to depth, separately for remarkable earthquakes and not according to magnitude bigger or equal to 5.
+
+```{r quakes_stations, echo=FALSE}
+quakes %>% 
+  select(depth,mag,stations) %>%
+  mutate(strong = ifelse(mag >= 5, "remarkable magnitude", "not remarkable")) %>%
+  ggplot(aes(x = stations,
+             y = depth,
+             color = stations)) +
+  geom_point() + 
+  geom_point(size = 0.7) +
+  facet_grid(strong ~ ., scales="free")
+```
+
+To see how depth and magnitude correlates with detection of earthquake by station let's plot their dependency.
+
+```{r quakes_gather, echo=FALSE}
+quakes %>% 
+  gather(key = measure, value = value, "depth":"mag") %>%
+  ggplot(aes(x = stations,
+             y = value,
+             color = stations)) +
+  geom_point() + 
+  geom_point(size = 0.7) +
+  facet_grid(measure ~ ., scales="free")
+```
+
+And we see that the higher magnitude the higher chance for detecting and with depth it doesn't work.
